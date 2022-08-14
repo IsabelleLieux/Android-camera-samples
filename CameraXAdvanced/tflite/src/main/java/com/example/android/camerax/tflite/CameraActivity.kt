@@ -248,7 +248,7 @@ class CameraActivity : AppCompatActivity() {
         val location = mapOutputCoordinates(prediction.location)
 
         // Update the text and UI
-        activityCameraBinding.textPrediction.text = "${"%.2f".format(prediction.score)} ${prediction.label}"
+        activityCameraBinding.textPrediction.text = prediction.label
         (activityCameraBinding.boxPrediction.layoutParams as ViewGroup.MarginLayoutParams).apply {
             topMargin = location.top.toInt()
             leftMargin = location.left.toInt()
