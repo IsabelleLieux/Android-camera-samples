@@ -24,6 +24,7 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.RectF
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.util.Size
 import android.view.View
@@ -48,6 +49,7 @@ import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ops.ResizeOp
 import org.tensorflow.lite.support.image.ops.ResizeWithCropOrPadOp
 import org.tensorflow.lite.support.image.ops.Rot90Op
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.math.min
@@ -55,8 +57,10 @@ import kotlin.random.Random
 
 
 /** Activity that displays the camera and performs object detection on the incoming frames */
-class CameraActivity : AppCompatActivity() {
+class CameraActivity : AppCompatActivity(),TextToSpeech.OnInitListener {
 
+    private var prediction: ObjectDetectionHelper.ObjectPrediction? = null
+    private var textToSpeech: TextToSpeech? = null
     private lateinit var activityCameraBinding: ActivityCameraBinding
 
     private lateinit var bitmapBuffer: Bitmap
@@ -107,6 +111,7 @@ class CameraActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        textToSpeech = TextToSpeech(this, this)
         activityCameraBinding = ActivityCameraBinding.inflate(layoutInflater)
         setContentView(activityCameraBinding.root)
 
@@ -122,6 +127,9 @@ class CameraActivity : AppCompatActivity() {
 
             } else {
                 // Otherwise, pause image analysis and freeze image
+                if (prediction!= null) {
+                    textToSpeech!!.speak(prediction!!.label, TextToSpeech.QUEUE_FLUSH, null, "")
+                }
                 pauseAnalysis = true
                 val matrix = Matrix().apply {
                     postRotate(imageRotationDegrees.toFloat())
@@ -243,6 +251,7 @@ class CameraActivity : AppCompatActivity() {
             activityCameraBinding.textPrediction.visibility = View.GONE
             return@post
         }
+        this.prediction = prediction
 
         // Location has to be mapped to our local coordinates
         val location = mapOutputCoordinates(prediction.location)
@@ -345,5 +354,15 @@ class CameraActivity : AppCompatActivity() {
         private const val ACCURACY_THRESHOLD = 0.5f
         private const val MODEL_PATH = "coco_ssd_mobilenet_v1_1.0_quant.tflite"
         private const val LABELS_PATH = "coco_ssd_mobilenet_v1_1.0_labels.txt"
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val result = textToSpeech!!.setLanguage(Locale.US)
+
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e("TTS","The Language not supported!")
+            }
+        }
     }
 }
