@@ -60,6 +60,7 @@ import kotlin.random.Random
 class CameraActivity : AppCompatActivity(),TextToSpeech.OnInitListener {
 
     private var prediction: ObjectDetectionHelper.ObjectPrediction? = null
+    private var accumulatingPrediction: AccumulatingPrediction? = null
     private var textToSpeech: TextToSpeech? = null
     private lateinit var activityCameraBinding: ActivityCameraBinding
 
@@ -252,6 +253,15 @@ class CameraActivity : AppCompatActivity(),TextToSpeech.OnInitListener {
             return@post
         }
         this.prediction = prediction
+        if(accumulatingPrediction == null || accumulatingPrediction!!.getLabel()!=prediction.label){
+            accumulatingPrediction=AccumulatingPrediction(prediction.label,prediction.score)
+        } else {
+            accumulatingPrediction!!.accumulateScore(prediction.score)
+
+        }
+        if(!textToSpeech!!.isSpeaking && accumulatingPrediction!!.totalScore > 10) {
+            textToSpeech!!.speak(prediction!!.label, TextToSpeech.QUEUE_FLUSH, null, "")
+        }
 
         // Location has to be mapped to our local coordinates
         val location = mapOutputCoordinates(prediction.location)
